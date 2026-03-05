@@ -1179,6 +1179,7 @@ dependencies = [
  "static_assertions",
  "thiserror 1.0.69",
  "tiny-keccak",
+ "tracing",
  "trybuild",
  "typenum",
  "x25519-dalek",

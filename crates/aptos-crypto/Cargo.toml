@@ -72,6 +72,7 @@ thiserror = { workspace = true }
 tiny-keccak = { workspace = true }
 typenum = { workspace = true }
 x25519-dalek = { workspace = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 arbitrary = { workspace = true, features = ["derive"] }
@@ -100,6 +101,7 @@ assert-private-keys-not-cloneable = []
 cloneable-private-keys = []
 fuzzing = ["proptest", "proptest-derive", "cloneable-private-keys", "arbitrary"]
 testing = []
+byzzfuzz = ["dep:tracing"]
 
 [[bench]]
 name = "ark_bls12_381"

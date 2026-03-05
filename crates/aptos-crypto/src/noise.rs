@@ -71,6 +71,76 @@ use std::{
 };
 use thiserror::Error;
 
+/// ByzzFuzz mod for logging info on noise sessions.
+mod byzzfuzz {
+    use crate::x25519;
+
+    #[cfg(feature = "byzzfuzz")]
+    fn secrets_path() -> Option<std::path::PathBuf> {
+        std::env::var_os("BYZZFUZZ_NOISE_SECRETS_PATH").map(std::path::PathBuf::from)
+    }
+
+    #[cfg(feature = "byzzfuzz")]
+    pub fn log_session_secrets(
+        event: &str,
+        rs: &x25519::PublicKey,
+        write_key: &[u8],
+        read_key: &[u8],
+        write_nonce0: u64,
+        read_nonce0: u64,
+    ) {
+        let Some(path) = secrets_path() else {
+            // Optional: keep tracing here as fallback.
+            // For now, no op when path isn't configured.
+            return;
+        };
+
+        // JSONL line
+        let line = format!(
+            "{{\"byzzfuzz\":\"noise_session\",\"event\":\"{}\",\"remote_static\":\"{}\",\"write_key\":\"{}\",\"read_key\":\"{}\",\"write_nonce0\":{},\"read_nonce0\":{}}}\n",
+            event,
+            hex::encode(rs.as_slice()),
+            hex::encode(write_key),
+            hex::encode(read_key),
+            write_nonce0,
+            read_nonce0,
+        );
+
+        if let Err(_e) = append_line(&path, &line) {
+            // Optional: tracing::debug!(...)
+        }
+    }
+
+    #[cfg(feature = "byzzfuzz")]
+    fn append_line(path: &std::path::Path, line: &str) -> std::io::Result<()> {
+        use std::io::Write;
+
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)?;
+        f.write_all(line.as_bytes())?;
+        // Flush so dsTest can see it quickly.
+        f.flush()?;
+        Ok(())
+    }
+
+    #[cfg(not(feature = "byzzfuzz"))]
+    #[inline(always)]
+    pub fn log_session_secrets(
+        _event: &str,
+        _rs: &x25519::PublicKey,
+        _write_key: &[u8],
+        _read_key: &[u8],
+        _write_nonce0: u64,
+        _read_nonce0: u64,
+    ) {}
+}
+
 //
 // Useful constants
 // ----------------
@@ -393,6 +463,10 @@ impl NoiseConfig {
 
         // split
         let (k1, k2) = hkdf(&ck, None)?;
+
+        // initiator: write=k1, read=k2, both nonces start at 0
+        byzzfuzz::log_session_secrets("initiator", &rs, &k1, &k2, 0, 0);
+
         let session = NoiseSession::new(k1, k2, rs);
 
         //
@@ -546,6 +620,10 @@ impl NoiseConfig {
 
         // split
         let (k1, k2) = hkdf(&ck, None)?;
+
+        // responder: write=k2, read=k1, both nonces start at 0
+        byzzfuzz::log_session_secrets("responder", &rs, &k2, &k1, 0, 0);
+
         let session = NoiseSession::new(k2, k1, rs);
 
         //
