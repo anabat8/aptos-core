@@ -97,6 +97,8 @@ url = { workspace = true }
 
 [features]
 default = []
+seeded-bug1-qc-high = []
+seeded-bug2-qc-low = []
 testing = ["aptos-crypto/fuzzing"]
 fuzzing = [
     "proptest",

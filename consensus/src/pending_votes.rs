@@ -175,6 +175,18 @@ pub struct PendingVotes {
     echo_timeout: bool,
 }
 
+fn has_echo_timeout_voting_power(tc_voting_power: u128, f_plus_one: u128) -> bool {
+    #[cfg(feature = "seeded-bug3-echo-timeout-strict")]
+    {
+        // BUG3: require strictly more than f+1 timeout voting power before echoing.
+        tc_voting_power > f_plus_one
+    }
+    #[cfg(not(feature = "seeded-bug3-echo-timeout-strict"))]
+    {
+        tc_voting_power >= f_plus_one
+    }
+}
+
 impl PendingVotes {
     /// Creates an empty PendingVotes structure for a specific epoch and round
     pub fn new() -> Self {
@@ -257,7 +269,7 @@ impl PendingVotes {
             let f_plus_one = validator_verifier.total_voting_power()
                 - validator_verifier.quorum_voting_power()
                 + 1;
-            if tc_voting_power >= f_plus_one {
+            if has_echo_timeout_voting_power(tc_voting_power, f_plus_one) {
                 self.echo_timeout = true;
                 return VoteReceptionResult::EchoTimeout(tc_voting_power);
             }
@@ -466,7 +478,7 @@ impl PendingVotes {
                 let f_plus_one = validator_verifier.total_voting_power()
                     - validator_verifier.quorum_voting_power()
                     + 1;
-                if tc_voting_power >= f_plus_one {
+                if has_echo_timeout_voting_power(tc_voting_power, f_plus_one) {
                     self.echo_timeout = true;
                     return VoteReceptionResult::EchoTimeout(tc_voting_power);
                 }

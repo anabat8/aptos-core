@@ -121,6 +121,7 @@ fuzzing = [
     "aptos-safety-rules/testing",
 ]
 failpoints = ["fail/failpoints"]
+seeded-bug3-echo-timeout-strict = []
 
 [package.metadata.cargo-machete]
 ignored = ["serde_bytes"]

@@ -208,7 +208,25 @@ impl ValidatorVerifier {
         let quorum_voting_power = if validator_infos.is_empty() {
             0
         } else {
-            total_voting_power * 2 / 3 + 1
+            #[cfg(all(feature = "seeded-bug1-qc-high", feature = "seeded-bug2-qc-low"))]
+            compile_error!(
+                "seeded-bug1-qc-high and seeded-bug2-qc-low must not be enabled together"
+            );
+
+            #[cfg(feature = "seeded-bug1-qc-high")]
+            {
+                // BUG1: require unanimous voting power for quorum certificates.
+                total_voting_power
+            }
+            #[cfg(feature = "seeded-bug2-qc-low")]
+            {
+                // BUG2: allow a quorum certificate with only f+1 voting power.
+                total_voting_power / 3 + 1
+            }
+            #[cfg(not(any(feature = "seeded-bug1-qc-high", feature = "seeded-bug2-qc-low")))]
+            {
+                total_voting_power * 2 / 3 + 1
+            }
         };
         Self::build_index(validator_infos, quorum_voting_power, total_voting_power)
     }
